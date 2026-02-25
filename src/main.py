@@ -38,6 +38,7 @@ def compare_images(image1: cv2.Mat, image2: cv2.Mat):
     return ssim_two_images(image1, image2)
 
 def main(args):
+    threshold = 0.3
     image = cv2.imread(args[1])
     faces = detect_faces(image)
     if len(faces) == 0:
@@ -69,5 +70,10 @@ def main(args):
             for dest_face in dest_faces:
                 x_dest, y_dest, w_dest, h_dest = dest_face
                 cropped_dest_image = dest_image[y_dest:y_dest+h_dest, x_dest:x_dest+w_dest]
-                compare_images(cropped_source_image, cropped_dest_image)
+                similarity = compare_images(cropped_source_image, cropped_dest_image)
+                if similarity < threshold:
+                    logging.info(f"Similarity {similarity} below threshold {threshold}, skipping.")
+                    continue
+                similiarity_data[dest_path] = similarity
         cur_path = paths.popleft() if len(paths) > 0 else None
+
