@@ -1,3 +1,4 @@
+import collections
 import logging
 import os
 import pathlib
@@ -50,17 +51,23 @@ def main(args):
     cropped_source_image = image[y_source:y_source+h_source, x_source:x_source+w_source]
     similiarity_data = dict()
 
-    for image_path in (os.listdir("data/")):
-        dest_path = pathlib.Path(os.path.join("data/", image_path))
-        
-        
-        logging.info(f"Comparing with {image_path}...")
-        dest_image = cv2.imread(dest_path)
-        dest_faces = detect_faces(dest_image)
-        if len(dest_faces) == 0:
-            logging.info(f"No faces detected at destination image {image_path}, skipping.")
-            continue
-        for dest_face in dest_faces:
-            x_dest, y_dest, w_dest, h_dest = dest_face
-            cropped_dest_image = dest_image[y_dest:y_dest+h_dest, x_dest:x_dest+w_dest]
-            compare_images(cropped_source_image, cropped_dest_image)
+    paths  = collections.deque([pathlib.Path("data/")])
+    cur_path = cur_path = paths.popleft()
+    while cur_path:            
+        for image_path in os.listdir(cur_path):
+            dest_path = pathlib.Path(cur_path / image_path)
+            
+            if dest_path.is_dir():
+                paths.append(dest_path)
+                continue
+            logging.info(f"Comparing with {dest_path}...")
+            dest_image = cv2.imread(dest_path)
+            dest_faces = detect_faces(dest_image)
+            if len(dest_faces) == 0:
+                logging.info(f"No faces detected at destination image {image_path}, skipping.")
+                continue
+            for dest_face in dest_faces:
+                x_dest, y_dest, w_dest, h_dest = dest_face
+                cropped_dest_image = dest_image[y_dest:y_dest+h_dest, x_dest:x_dest+w_dest]
+                compare_images(cropped_source_image, cropped_dest_image)
+        cur_path = paths.popleft() if len(paths) > 0 else None
