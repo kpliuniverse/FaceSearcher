@@ -111,6 +111,7 @@ class GUI(wx.Frame):
             bitmap_widget = wx.StaticBitmap(parent=row, bitmap=bitmap)
             rowsizer.Add(bitmap_widget, 0, wx.ALL, 5)
             bSizer.Add( row, 0, wx.EXPAND, 5 )
+            icon.close()
             st = wx.StaticText(row, id = 1, label =f"{path}\nSimiliarity: {similiarity}", pos =(0, 0), size = wx.DefaultSize, style = 0)
             rowsizer.Add(st, 0, wx.ALL, 5)
             row.SetSizer(rowsizer)  
