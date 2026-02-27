@@ -12,5 +12,9 @@ wheels/
 # Sample data
 data/
 
-#Test in 
+# Test in 
 testin/
+
+# PyInstaller Distribtuion files
+dist/
+*.spec
