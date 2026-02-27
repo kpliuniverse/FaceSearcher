@@ -1,0 +1,1 @@
+pyinstaller launch.py -n facesearch --add-data ".venv\Lib\site-packages\cv2\data;cv2\data"

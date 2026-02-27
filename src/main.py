@@ -127,6 +127,7 @@ def show_result(data):
 
 
 def main(args):
+    print(cv2.__file__)
     parser = argparse.ArgumentParser(prog="FaceSearcher", description="Compare faces in source image with a set of images in the destination folder.")
     parser.add_argument("-s", "--source_image", help="Path to the source image.")
     parser.add_argument("-c", "--comparison_folder", help="Path to the comparison folder. Nesting supported.")
