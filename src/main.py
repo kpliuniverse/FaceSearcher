@@ -126,6 +126,11 @@ def show_result(data):
 
 
 def main(args):
-
-    if data := get_analysis(args[1], dest_path):
+    parser = argparse.ArgumentParser(prog="FaceSearcher", description="Compare faces in source image with a set of images in the destination folder.")
+    parser.add_argument("-s", "--source_image", help="Path to the source image.")
+    parser.add_argument("-c", "--comparison_folder", help="Path to the comparison folder. Nesting supported")
+    parser.add_argument("--threshold", help="Similarity threshold, between 0 and 1, default is 0.3.", default=0.3, type=float)
+    args = parser.parse_args(args[1:])
+    dest_path = pathlib.Path(args.comparison_folder)
+    if data := get_analysis(args.source_image, dest_path, args.threshold):
         show_result(data)
