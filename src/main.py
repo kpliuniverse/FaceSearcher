@@ -132,6 +132,9 @@ def main(args):
     parser.add_argument("-c", "--comparison_folder", help="Path to the comparison folder. Nesting supported.")
     parser.add_argument("--threshold", help="Similarity threshold, between 0 and 1, default is 0.3.", default=0.3, type=float)
     args = parser.parse_args(args[1:])
+    if not args.source_image or not args.comparison_folder:
+        parser.print_help()
+        return 0
     dest_path = pathlib.Path(args.comparison_folder)
     if data := get_analysis(args.source_image, dest_path, args.threshold):
         show_result(data)
