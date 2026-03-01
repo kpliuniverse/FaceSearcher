@@ -20,7 +20,6 @@ FACE_CLASSIFIER = cv2.CascadeClassifier(
     )
 
 
-
 def ssim_two_images(image1: Image, image2: Image):
     """
     Compares two same-sized images using Structural Similarity Index (SSIM).
@@ -129,6 +128,7 @@ def show_result(data):
     frame = GUI(data)
     frame.Show()
     app.MainLoop()
+
 
 def detect_faces(image: cv2.Mat):
     """
