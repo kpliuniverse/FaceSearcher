@@ -156,6 +156,10 @@ class ImageComparison:
         return faces
 
     def compare_faces(self, cropped_source_image, dest_path, threshold):        
+        """
+        Compare a cropped source face with faces detected in the destination image, 
+        and add the result to the result dicationary.
+        """
         try:
             dest_image = cv2.imread(dest_path)
         except Exception as e:
@@ -170,12 +174,12 @@ class ImageComparison:
             if len(dest_faces) == 0:
                 logging.info(f"No faces detected at destination image {dest_path}, skipping.")
                 return
-            for dest_face in dest_faces:
+            for i, dest_face in enumerate(dest_faces):
                 x_dest, y_dest, w_dest, h_dest = dest_face
                 cropped_dest_image = dest_image[y_dest:y_dest+h_dest, x_dest:x_dest+w_dest]
                 similarity = compare_images(cropped_source_image, cropped_dest_image)
                 if similarity < threshold:
-                    logging.info(f"Similarity {similarity} below threshold {threshold}, skipping.")
+                    logging.info(f"Similarity {similarity} below threshold {threshold} on face {i} on image {dest_path}, skipping.")
                     continue
                 with self.dict_lock:
                     self.result[dest_path] = similarity
