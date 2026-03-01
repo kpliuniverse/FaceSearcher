@@ -139,6 +139,8 @@ def detect_faces(image: cv2.Mat):
         gray_image, scaleFactor=1.25, minNeighbors=6, minSize=(50, 50)
     )
     return faces
+
+
 class ImageComparison:
     def __init__(self, balance=0):
         self.result = dict()
