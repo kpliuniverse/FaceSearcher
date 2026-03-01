@@ -18,6 +18,9 @@ FACE_CLASSIFIER = cv2.CascadeClassifier(
     )
 
 def detect_faces(image: cv2.Mat):
+    """
+    Get faces of a particular image using OpenCV's Haar Cascade Classifier.
+    """
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
     faces = FACE_CLASSIFIER.detectMultiScale(
         gray_image, scaleFactor=1.25, minNeighbors=6, minSize=(50, 50)
@@ -26,12 +29,20 @@ def detect_faces(image: cv2.Mat):
 
 
 def ssim_two_images(image1: Image, image2: Image):
+    """
+    Compares two same-sized images using Structural Similarity Index (SSIM).
+    """
     gray1 = image1.convert("L")
     gray2 = image2.convert("L")
     return ssim(np.array(gray1), np.array(gray2), gaussian_weights=True, sigma=1.5, use_sample_covariance=False, data_range=255)
 
 
 def compare_images(image1: cv2.Mat, image2: cv2.Mat):
+    """
+    Prepares two images for comparison and compares them using SSIM.
+     
+    This includes resizing the images to the same size and converting them to RGB format.
+    """
     image1 = Image.fromarray(cv2.cvtColor(image1, cv2.COLOR_BGR2RGB))
     image2 = Image.fromarray(cv2.cvtColor(image2, cv2.COLOR_BGR2RGB))
     w = min(image1.size[0], image2.size[0])
@@ -41,7 +52,14 @@ def compare_images(image1: cv2.Mat, image2: cv2.Mat):
     return ssim_two_images(image1, image2)
 
 
-def get_analysis(image_path: str, dest_folder: pathlib.Path, threshold: float = 0.3):    
+def get_analysis(image_path: str, dest_folder: pathlib.Path, threshold: float = 0.3): 
+    """
+    Compare source image with all images in the destination folder.
+    
+    This returns a list of tuples of (image_path, similarity) sorted by similarity in descending order. 
+    Only the first face detected in the source image will be used for comparison.
+    Nesting is supported for the destination folder, but only images with faces will be compared.
+    """   
     image = cv2.imread(image_path)
     faces = detect_faces(image)
     if len(faces) == 0:
@@ -120,6 +138,9 @@ class GUI(wx.Frame):
 
 
 def show_result(data):
+    """
+    Show face search results to a GUI.
+    """
     app = wx.App()
     frame = GUI(data)
     frame.Show()
