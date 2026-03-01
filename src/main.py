@@ -1,8 +1,10 @@
 import argparse
 import collections
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
 import pathlib
+import threading
 
 import PIL
 import cv2
@@ -17,15 +19,6 @@ FACE_CLASSIFIER = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
 
-def detect_faces(image: cv2.Mat):
-    """
-    Get faces of a particular image using OpenCV's Haar Cascade Classifier.
-    """
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
-    faces = FACE_CLASSIFIER.detectMultiScale(
-        gray_image, scaleFactor=1.25, minNeighbors=6, minSize=(50, 50)
-    )
-    return faces
 
 
 def ssim_two_images(image1: Image, image2: Image):
@@ -75,30 +68,21 @@ def get_analysis(image_path: str, dest_folder: pathlib.Path, threshold: float = 
 
     paths  = collections.deque([dest_folder])
     cur_path = cur_path = paths.popleft()
-    while cur_path:            
-        for image_path in os.listdir(cur_path):
-            dest_path = pathlib.Path(cur_path / image_path)
-            
-            if dest_path.is_dir():
-                paths.append(dest_path)
-                continue
-            logging.info(f"Comparing with {dest_path}...")
-            dest_image = cv2.imread(dest_path)
-            dest_faces = detect_faces(dest_image)
-            if len(dest_faces) == 0:
-                logging.info(f"No faces detected at destination image {image_path}, skipping.")
-                continue
-            for dest_face in dest_faces:
-                x_dest, y_dest, w_dest, h_dest = dest_face
-                cropped_dest_image = dest_image[y_dest:y_dest+h_dest, x_dest:x_dest+w_dest]
-                similarity = compare_images(cropped_source_image, cropped_dest_image)
-                if similarity < threshold:
-                    logging.info(f"Similarity {similarity} below threshold {threshold}, skipping.")
+
+    image_comparison = ImageComparison()
+
+    while cur_path:         
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            for image_path in os.listdir(cur_path):
+                dest_path = pathlib.Path(cur_path / image_path)
+                if dest_path.is_dir():
+                    paths.append(dest_path)
                     continue
-                similiarity_data[dest_path] = similarity
-        cur_path = paths.popleft() if len(paths) > 0 else None
+                logging.info(f"Comparing with {dest_path}...")
+                executor.submit(image_comparison.compare_faces, cropped_source_image, dest_path, threshold)
+            cur_path = paths.popleft() if len(paths) > 0 else None
     
-    return sorted(similiarity_data.items(), key=lambda x: x[1], reverse=True)
+    return sorted(image_comparison.result.items(), key=lambda x: x[1], reverse=True)
 
 # Source - https://stackoverflow.com/a/21378718
 # Posted by Jerry_Y, modified by community. See post 'Timeline' for change history
@@ -146,7 +130,59 @@ def show_result(data):
     frame.Show()
     app.MainLoop()
 
+def detect_faces(image: cv2.Mat):
+    """
+    Get faces of a particular image using OpenCV's Haar Cascade Classifier.
+    """
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
+    faces = FACE_CLASSIFIER.detectMultiScale(
+        gray_image, scaleFactor=1.25, minNeighbors=6, minSize=(50, 50)
+    )
+    return faces
+class ImageComparison:
+    def __init__(self, balance=0):
+        self.result = dict()
+        self.dict_lock = threading.Lock()
 
+    def detect_faces(self, image: cv2.Mat):
+        """
+        Get faces of a particular image using OpenCV's Haar Cascade Classifier.
+        """
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
+        with self.dict_lock:
+            faces = FACE_CLASSIFIER.detectMultiScale(
+                gray_image, scaleFactor=1.25, minNeighbors=6, minSize=(50, 50)
+            )
+        return faces
+
+    def compare_faces(self, cropped_source_image, dest_path, threshold):        
+        try:
+            dest_image = cv2.imread(dest_path)
+        except Exception as e:
+            logging.error(f"Error reading {dest_path}: {e}")
+            return
+        try:
+            dest_faces = self.detect_faces(dest_image)
+        except Exception as e:
+            logging.error(f"Error detecting faces in {dest_path}: {e}")
+            return
+        try:
+            if len(dest_faces) == 0:
+                logging.info(f"No faces detected at destination image {dest_path}, skipping.")
+                return
+            for dest_face in dest_faces:
+                x_dest, y_dest, w_dest, h_dest = dest_face
+                cropped_dest_image = dest_image[y_dest:y_dest+h_dest, x_dest:x_dest+w_dest]
+                similarity = compare_images(cropped_source_image, cropped_dest_image)
+                if similarity < threshold:
+                    logging.info(f"Similarity {similarity} below threshold {threshold}, skipping.")
+                    continue
+                with self.dict_lock:
+                    self.result[dest_path] = similarity
+        except Exception as e:
+            logging.error(f"Error comparing face with {dest_path}: {e}")
+
+            
 def main(args):
     print(cv2.__file__)
     parser = argparse.ArgumentParser(prog="FaceSearcher", description="Compare faces in source image with a set of images in the destination folder.")
