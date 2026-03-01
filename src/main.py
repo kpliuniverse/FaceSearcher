@@ -44,7 +44,7 @@ def compare_images(image1: cv2.Mat, image2: cv2.Mat):
     return ssim_two_images(image1, image2)
 
 
-def get_analysis(image_path: str, dest_folder: pathlib.Path, threshold: float = 0.3): 
+def get_analysis(image_path: str, dest_folder: pathlib.Path, threshold: float, threads: int): 
     """
     Compare source image with all images in the destination folder.
     
@@ -71,7 +71,7 @@ def get_analysis(image_path: str, dest_folder: pathlib.Path, threshold: float = 
     image_comparison = ImageComparison()
 
     while cur_path:         
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=threads) as executor:
             for image_path in os.listdir(cur_path):
                 dest_path = pathlib.Path(cur_path / image_path)
                 if dest_path.is_dir():
@@ -194,11 +194,13 @@ def main(args):
     parser = argparse.ArgumentParser(prog="FaceSearcher", description="Compare faces in source image with a set of images in the destination folder.")
     parser.add_argument("-s", "--source_image", help="Path to the source image.")
     parser.add_argument("-c", "--comparison_folder", help="Path to the comparison folder. Nesting supported.")
-    parser.add_argument("--threshold", help="Similarity threshold, between 0 and 1, default is 0.3.", default=0.3, type=float)
+    parser.add_argument("--threshold", help="Similarity threshold, between 0 and 1, default is 0.3.", default=0.3, type=float) 
+    parser.add_argument("--threads", help="Number of threads to use for face comparison, default is 4.", default=4, type=int)
+
     args = parser.parse_args(args[1:])
     if not args.source_image or not args.comparison_folder:
         parser.print_help()
         return 0
     dest_path = pathlib.Path(args.comparison_folder)
-    if data := get_analysis(args.source_image, dest_path, args.threshold):
+    if data := get_analysis(args.source_image, dest_path, args.threshold, args.threads):
         show_result(data)
